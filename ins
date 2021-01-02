@@ -125,12 +125,12 @@ clear
 echo DONE INSTALL
 
 # squid3
-apt-get -y install squid3
-wget -O /etc/squid3/squid.conf "https://raw.githubusercontent.com/padubang/mambang/main/squid.conf"
-wget -O /etc/squid/squid.conf "https://raw.githubusercontent.com/padubang/mambang/main/squid.conf"
-sed -i "s/ipserver/$myip/g" /etc/squid3/squid.conf
-sed -i "s/ipserver/$myip/g" /etc/squid/squid.conf
-sed -i "s/ipserver/$myip/g" /etc/squid3/squid.conf
+# apt-get -y install squid3
+# wget -O /etc/squid3/squid.conf "https://raw.githubusercontent.com/padubang/mambang/main/squid.conf"
+# wget -O /etc/squid/squid.conf "https://raw.githubusercontent.com/padubang/mambang/main/squid.conf"
+# sed -i "s/ipserver/$myip/g" /etc/squid3/squid.conf
+# sed -i "s/ipserver/$myip/g" /etc/squid/squid.conf
+# sed -i "s/ipserver/$myip/g" /etc/squid3/squid.conf
 
 # Install BadVPN
 apt-get -y install cmake make gcc
