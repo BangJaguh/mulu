@@ -78,17 +78,6 @@ service exim4 stop;sysv-rc-conf exim4 off;
 apt-get -y install webmin
 sed -i 's/ssl=1/ssl=0/g' /etc/webmin/miniserv.conf
 
-# setting port ssh
-sed -i 's/Port 22/Port 22/g' /etc/ssh/sshd_config
-
-# install dropbear
-apt-get -y install dropbear
-sed -i 's/NO_START=1/NO_START=0/g' /etc/default/dropbear
-sed -i 's/DROPBEAR_PORT=22/DROPBEAR_PORT=444/g' /etc/default/dropbear
-echo "/bin/false" >> /etc/shells
-echo "/usr/sbin/nologin" >> /etc/shells
-/etc/init.d/dropbear restart
-
 apt-get update && apt-get upgrade -y
 
 echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
@@ -132,92 +121,6 @@ sed -i "s/ipserver/$myip/g" /etc/squid3/squid.conf
 sed -i "s/ipserver/$myip/g" /etc/squid/squid.conf
 sed -i "s/ipserver/$myip/g" /etc/squid3/squid.conf
 
-# Install BadVPN
-apt-get -y install cmake make gcc
-wget https://raw.githubusercontent.com/GegeEmbrie/autosshvpn/master/file/badvpn-1.999.127.tar.bz2
-tar xf badvpn-1.999.127.tar.bz2
-mkdir badvpn-build
-cd badvpn-build
-cmake ~/badvpn-1.999.127 -DBUILD_NOTHING_BY_DEFAULT=1 -DBUILD_UDPGW=1
-make install
-screen badvpn-udpgw --listen-addr 127.0.0.1:7300 > /dev/null &
-cd
-
-# install stunnel
-apt-get install stunnel4 -y
-cat > /etc/stunnel/stunnel.conf <<-END
-cert = /etc/stunnel/stunnel.pem
-client = no
-socket = a:SO_REUSEADDR=1
-socket = l:TCP_NODELAY=1
-socket = r:TCP_NODELAY=1
-[dropbear]
-accept = 442
-connect = 127.0.0.1:441
-END
-
-# make a certificate
-openssl genrsa -out key.pem 2048
-openssl req -new -x509 -key key.pem -out cert.pem -days 1095 \
--subj "/C=$country/ST=$state/L=$locality/O=$organization/OU=$organizationalunit/CN=$commonname/emailAddress=$email"
-cat key.pem cert.pem >> /etc/stunnel/stunnel.pem
-
-# configure stunnel
-sed -i 's/ENABLED=0/ENABLED=1/g' /etc/default/stunnel4
-/etc/init.d/stunnel4 restart
-
-cd
-# Install VNSTAT
-apt-get install vnstat -y
-cd /home/vps/public_html/
-wget https://raw.githubusercontent.com/GegeEmbrie/autosshvpn/master/file/vnstat_php_frontend-1.5.1.tar.gz
-tar xf vnstat_php_frontend-1.5.1.tar.gz
-rm vnstat_php_frontend-1.5.1.tar.gz
-mv vnstat_php_frontend-1.5.1 vnstat
-cd vnstat
-if [[ `ifconfig -a | grep "venet0"` ]]
-then
-cekvirt='OpenVZ'
-elif [[ `ifconfig -a | grep "venet0:0"` ]]
-then
-cekvirt='OpenVZ'
-elif [[ `ifconfig -a | grep "venet0:0-00"` ]]
-then
-cekvirt='OpenVZ'
-elif [[ `ifconfig -a | grep "venet0-00"` ]]
-then
-cekvirt='OpenVZ'
-elif [[ `ifconfig -a | grep "eth0"` ]]
-then
-cekvirt='KVM'
-elif [[ `ifconfig -a | grep "eth0:0"` ]]
-then
-cekvirt='KVM'
-elif [[ `ifconfig -a | grep "eth0:0-00"` ]]
-then
-cekvirt='KVM'
-elif [[ `ifconfig -a | grep "eth0-00"` ]]
-then
-cekvirt='KVM'
-fi
-if [ $cekvirt = 'KVM' ]; then
-	sed -i 's/eth0/eth0/g' config.php
-	sed -i "s/\$iface_list = array('eth0', 'sixxs');/\$iface_list = array('eth0');/g" config.php
-	sed -i "s/\$language = 'nl';/\$language = 'en';/g" config.php
-	sed -i 's/Internal/Internet/g' config.php
-	sed -i '/SixXS IPv6/d' config.php
-	cd
-elif [ $cekvirt = 'OpenVZ' ]; then
-	sed -i 's/eth0/venet0/g' config.php
-	sed -i "s/\$iface_list = array('venet0', 'sixxs');/\$iface_list = array('venet0');/g" config.php
-	sed -i "s/\$language = 'nl';/\$language = 'en';/g" config.php
-	sed -i 's/Internal/Internet/g' config.php
-	sed -i '/SixXS IPv6/d' config.php
-	cd
-else
-	cd
-fi
-
 echo "UPDATE AND INSTALL COMPLETE COMPLETE 99% BE PATIENT"
 rm *.sh;rm *.txt;rm *.tar;rm *.deb;rm *.asc;rm *.zip;rm ddos*;
 
@@ -254,13 +157,11 @@ echo "@reboot /usr/local/bin/BlockTorrentEveryReboot" >> mycron
 crontab mycron
 rm mycron
 # restart service
-service stunnel4 restart
 service ssh restart
 service openvpn restart
 service dropbear restart
 service webmin restart
 service squid restart
-service fail2ban restart
 service freeradius restart
 clear
 
@@ -287,9 +188,7 @@ chown -R www-data:www-data /home/vps/public_html
 /etc/init.d/cron restart
 /etc/init.d/ssh restart
 /etc/init.d/dropbear restart
-/etc/init.d/fail2ban restart
 /etc/init.d/webmin restart
-/etc/init.d/stunnel4 restart
 /etc/init.d/squid start
 rm -rf ~/.bash_history && history -c
 echo "unset HISTFILE" >> /etc/profile
